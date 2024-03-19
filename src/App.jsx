@@ -21,7 +21,7 @@ function App() {
 
   const createNewChat = () => {
     setMessage(null);
-    setText("");
+    setText("What do you want?");
     setCurrentTitle(null);
   };
 
@@ -43,22 +43,19 @@ function App() {
     setErrorText("");
 
     const options = {
-      method: "POST",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": import.meta.env.VITE_AUTH_TOKEN,
       },
-      body: JSON.stringify({
-        message: text,
-      }),
+      // Remove the body property
     };
-
+    
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/completions`,
+        `http://localhost:8080/admin/chat/?query=${encodeURIComponent(text)}`, // Append the message as a query parameter
         options
       );
-
+    
       if (response.status === 429) {
         return setErrorText("Too many requests, please try again later.");
       }
@@ -74,7 +71,7 @@ function App() {
 
       if (!data.error) {
         setErrorText("");
-        setMessage(data.choices[0].message);
+        setMessage(data.answer);
         setTimeout(() => {
           scrollToLastItem.current?.lastElementChild?.scrollIntoView({
             behavior: "smooth",
@@ -232,8 +229,8 @@ function App() {
                 height={45}
                 alt="ChatGPT"
               />
-              <h1>Chat GPT Clone</h1>
-              <h3>How can I help you today?</h3>
+              <h1>FinGPT</h1>
+              <h3>How can I help you financially?</h3>
             </div>
           )}
 
