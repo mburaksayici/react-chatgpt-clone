@@ -20,6 +20,7 @@ function App() {
   const scrollToLastItem = useRef(null);
   const [userId, setUserId] = useState("admin"); // Assuming static user ID for now
   const [conversationId, setConversationId] = useState(""); // State to store conversation ID
+  const [selectedConversationId, setSelectedConversationId] = useState(false); // New state to store selected chat's conversationId
 
   // Function to initialize conversation
   const initializeConversation = () => {
@@ -52,6 +53,7 @@ function App() {
   const createNewChat = () => {
     setMessage(null);
     setText("What do you want?");
+    setSelectedConversationId(false);
     setCurrentTitle(null);
   };
 
@@ -71,22 +73,31 @@ function App() {
     setIsResponseLoading(true);
     setErrorText("");
 
+    let convId = ''; // Initialize convId
 
-    const response = await fetch("http://localhost:8080/admin/initialise_conversation/", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-    });
+    if (!selectedConversationId) {
+      // Hit the API endpoint only if selectedConversationId is not set
+      const response = await fetch("http://localhost:8080/admin/initialise_conversation/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to initialize conversation");
+      }
+  
+      const data = await response.json();
+      convId = data.conversation_id;
+    } else {
+      // If selectedConversationId is already set, use it
+      convId = selectedConversationId;
 
-    if (!response.ok) {
-      throw new Error("Failed to initialize conversation");
     }
-
-    const data = await response.json();
-    setConversationId(data.conversation_id);
-    const convId = data.conversation_id
+    setConversationId(convId);
+    setSelectedConversationId(convId);
 
     const options = {
       method: "GET",
@@ -94,33 +105,30 @@ function App() {
         "Accept": "application/json",
       },
     };
-    
+  
     try {
-      //await  initializeConversation();
-
-      
-      
       console.log("userId after init :", userId);
       console.log("conversationId after init:", conversationId);
-    
+  
       const response = await fetch(
         `http://localhost:8080/admin/conversation/?query=${encodeURIComponent(text)}&conversation_id=${convId}&user_id=${userId}`,
         options
       );
-    
+  
       if (response.status === 429) {
         return setErrorText("Too many requests, please try again later.");
       }
-
+  
       const data = await response.json();
-      console.log("apiresponse:",data);
+      data.conversation_id = convId
+      console.log("apiresponse:", data);
       if (data.error) {
         setErrorText(data.error.message);
         setText("");
       } else {
         setErrorText(false);
       }
-
+  
       if (!data.error) {
         setErrorText("");
         setMessage(data);
@@ -141,7 +149,7 @@ function App() {
       setIsResponseLoading(false);
     }
   };
-
+  
 
 
   useLayoutEffect(() => {
@@ -175,6 +183,8 @@ function App() {
         title: currentTitle,
         role: "user",
         content: text,
+        conversation_id: selectedConversationId || message.conversation_id,
+
 
       };
       console.log("newchat:",newChat);
@@ -183,9 +193,8 @@ function App() {
         title: currentTitle,
         role: message.role,
         content: message.content,
+        conversation_id: selectedConversationId || message.conversation_id,
       };
-      console.log("responseMessage:",responseMessage);
-
 
       setPreviousChats((prevChats) => [...prevChats, newChat, responseMessage]);
 
@@ -194,7 +203,7 @@ function App() {
       const updatedChats = [...localChats, newChat, responseMessage];
       localStorage.setItem("previousChats", JSON.stringify(updatedChats));
     }
-  }, [message, currentTitle]);
+  }, [message, currentTitle, selectedConversationId]);
 
   const currentChat = (localChats || previousChats).filter(
     (prevChat) => prevChat.title === currentTitle
@@ -246,27 +255,22 @@ function App() {
               <>
                 <p>Previous</p>
                 <ul>
-                  {localUniqueTitles?.map((uniqueTitle, idx) => {
-                    const listItems = document.querySelectorAll("li");
-
-                    listItems.forEach((item) => {
-                      if (item.scrollWidth > item.clientWidth) {
-                        item.classList.add("li-overflow-shadow");
-                      }
-                    });
-
-                    return (
-                      <li
-                        key={idx}
-                        onClick={() => backToHistoryPrompt(uniqueTitle)}
-                      >
-                        {uniqueTitle}
-                      </li>
-                    );
-                  })}
+                  {localUniqueTitles?.map((uniqueTitle, idx) => (
+                    <li
+                      key={idx}
+                      onClick={() => {
+                        const selectedChat = localChats.find(chat => chat.title === uniqueTitle);
+                        if (selectedChat) setSelectedConversationId(selectedChat.conversation_id);
+                        backToHistoryPrompt(uniqueTitle);
+                      }}
+                    >
+                      {uniqueTitle}
+                    </li>
+                  ))}
                 </ul>
               </>
             )}
+
           </div>
           <div className="sidebar-info">
             <div className="sidebar-info-upgrade">
