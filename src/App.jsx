@@ -18,6 +18,36 @@ function App() {
   const [errorText, setErrorText] = useState("");
   const [isShowSidebar, setIsShowSidebar] = useState(false);
   const scrollToLastItem = useRef(null);
+  const [userId, setUserId] = useState("admin"); // Assuming static user ID for now
+  const [conversationId, setConversationId] = useState(""); // State to store conversation ID
+
+  // Function to initialize conversation
+  const initializeConversation = () => {
+    return fetch("http://localhost:8080/admin/initialise_conversation/", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "user-id": userId, // Pass the user ID header
+      },
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to initialize conversation");
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log(data);
+      console.log("userId:", userId);
+      console.log("conversationId:", data.conversation_id); // Log the updated conversation ID
+      setConversationId(data.conversation_id); // Store the conversation ID
+    })
+    .catch(error => {
+      console.error("Error initializing conversation:", error);
+    });
+  };  // useEffect(() => {
+  //initializeConversation(); // Initialize conversation when component mounts
+  //}, []); // Empty dependency array to run only once
 
   const createNewChat = () => {
     setMessage(null);
@@ -38,21 +68,43 @@ function App() {
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!text) return;
-
     setIsResponseLoading(true);
     setErrorText("");
+
+
+    const response = await fetch("http://localhost:8080/admin/initialise_conversation/", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "user-id": userId,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to initialize conversation");
+    }
+
+    const data = await response.json();
+    setConversationId(data.conversation_id);
+    const convId = data.conversation_id
 
     const options = {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
+        "Accept": "application/json",
       },
-      // Remove the body property
     };
     
     try {
+      //await  initializeConversation();
+
+      
+      
+      console.log("userId after init :", userId);
+      console.log("conversationId after init:", conversationId);
+    
       const response = await fetch(
-        `http://localhost:8080/admin/chat/?query=${encodeURIComponent(text)}`, // Append the message as a query parameter
+        `http://localhost:8080/admin/conversation/?query=${encodeURIComponent(text)}&conversation_id=${convId}&user_id=${userId}`,
         options
       );
     
@@ -61,7 +113,7 @@ function App() {
       }
 
       const data = await response.json();
-
+      console.log("apiresponse:",data);
       if (data.error) {
         setErrorText(data.error.message);
         setText("");
@@ -71,7 +123,8 @@ function App() {
 
       if (!data.error) {
         setErrorText("");
-        setMessage(data.answer);
+        setMessage(data);
+        console.log(data);
         setTimeout(() => {
           scrollToLastItem.current?.lastElementChild?.scrollIntoView({
             behavior: "smooth",
@@ -79,7 +132,7 @@ function App() {
         }, 1);
         setTimeout(() => {
           setText("");
-        }, 2);
+        }, 200);
       }
     } catch (e) {
       setErrorText(e.message);
@@ -88,6 +141,8 @@ function App() {
       setIsResponseLoading(false);
     }
   };
+
+
 
   useLayoutEffect(() => {
     const handleResize = () => {
@@ -104,7 +159,7 @@ function App() {
 
   useEffect(() => {
     const storedChats = localStorage.getItem("previousChats");
-
+    console.log("storedchats:",storedChats);
     if (storedChats) {
       setLocalChats(JSON.parse(storedChats));
     }
@@ -120,15 +175,20 @@ function App() {
         title: currentTitle,
         role: "user",
         content: text,
+
       };
+      console.log("newchat:",newChat);
 
       const responseMessage = {
         title: currentTitle,
         role: message.role,
         content: message.content,
       };
+      console.log("responseMessage:",responseMessage);
+
 
       setPreviousChats((prevChats) => [...prevChats, newChat, responseMessage]);
+
       setLocalChats((prevChats) => [...prevChats, newChat, responseMessage]);
 
       const updatedChats = [...localChats, newChat, responseMessage];
@@ -225,8 +285,8 @@ function App() {
             <div className="empty-chat-container">
               <img
                 src="images/chatgpt-logo.svg"
-                width={45}
-                height={45}
+                width={60}
+                height={60}
                 alt="ChatGPT"
               />
               <h1>FinGPT</h1>
@@ -268,7 +328,7 @@ function App() {
                       </div>
                     ) : (
                       <div>
-                        <p className="role-title">ChatGPT</p>
+                        <p className="role-title">FinGPT</p>
                         <p>{chatMsg.content}</p>
                       </div>
                     )}
@@ -295,7 +355,7 @@ function App() {
               )}
             </form>
             <p>
-              ChatGPT can make mistakes. Consider checking important
+              FinGPT can make mistakes. Consider checking important
               information.
             </p>
           </div>
@@ -306,3 +366,4 @@ function App() {
 }
 
 export default App;
+
