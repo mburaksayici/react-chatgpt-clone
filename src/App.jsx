@@ -333,7 +333,7 @@ function App() {
                     ) : (
                       <div>
                         <p className="role-title">FinGPT</p>
-                        <p>{chatMsg.content}</p>
+                        <p style={{ whiteSpace: 'pre-line' }}>{chatMsg.content}</p>
                       </div>
                     )}
                   </li>
