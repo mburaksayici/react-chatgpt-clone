@@ -52,7 +52,7 @@ function App() {
 
   const createNewChat = () => {
     setMessage(null);
-    setText("What do you want?");
+    setText("Give me financial report that helps me invest to Tesla, on the emphasis of electric vehicles. Use stock data, documents that you have, cite all your sources, along with why you have chosen these sources and what questions make you search for those resources.");
     setSelectedConversationId(false);
     setCurrentTitle(null);
   };
