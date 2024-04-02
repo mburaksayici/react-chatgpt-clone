@@ -5,7 +5,7 @@ import { Resend } from "resend";
 import dotenv from "dotenv";
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend("wqw");
 
 const app = express();
 app.use(express.json());
@@ -24,7 +24,7 @@ const auth = (req, res, next) => {
   next();
 };
 
-app.post("/api/completions", auth, limiter, async (req, res) => {
+app.post("/admin/chat/", auth, limiter, async (req, res) => {
   const ip =
     req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
@@ -44,19 +44,14 @@ app.post("/api/completions", auth, limiter, async (req, res) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.GPT_MODEL_NAME,
-      messages: [
-        {
-          role: "user",
-          content: req.body.message,
-        },
-      ],
+      query:req.body.message
     }),
   };
+  
 
   try {
     const response = await fetch(
-      "https://api.openai.com/v1/chat/completions",
+      "http://0.0.0.0:8080/admin/chat/",
       options
     );
 
